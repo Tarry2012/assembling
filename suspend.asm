@@ -96,8 +96,12 @@ len 		db 0 						;保存数组长度
 inf1 		db 'Befor quick sort:$'
 inf2 		db 'After quick sort:$'
 inf4 		db 13,10,'Find another num(Y/N)?$'
-inf_end 	db 'Press tab to play music...$'
+inf_end 	db 'Press key to play music...$'
 
+;===============获得中断时间的数据=========
+firstsec	db 20h, 20h, '$'
+secondsec   	db 20h, 20h, '$'
+testsec 	db 20h, 20h, '$'
 DATA ENDS   
 
 STACK 	SEGMENT  stack
@@ -149,6 +153,23 @@ CLEAR MACRO
 	MOV 	AL, 0
 	INT 	10H
 	ENDM
+;===============将寄存器中存放的二进制数转换为ASCII码并存放在内存单元的宏
+TIMER1 MACRO REG,ADR
+       PUSH AX
+       PUSH BX
+       LEA SI,ADR
+       MOV AL,REG
+       MOV AH,00
+       MOV BL,10
+       DIV BL
+       ADD AL,30H
+       MOV [SI],AL
+       ADD AH,30H
+       INC SI
+       MOV [SI],AH
+       POP BX
+       POP AX
+       ENDM
 
 ;===============代码段定义===============================================
 CODE 	SEGMENT 
@@ -163,17 +184,19 @@ START:
 	SETCRT  
 	CLEAR
 	CALL    DISPLAY
-	CALL 	RANDOMSORT
-;	CALL    PLAYMUSIC
-;	CALL 	PRINTSTAR
+	CALL    PLAYMUSIC	
+	
 ;	CALL  	SHOWTIME
-	CALL 	EXIT
+;	CALL 	PRINTSTAR
+;	CALL 	RANDOMSORT
+        mov  ah, 4ch
+	int   21h
 
 ;==========随即数快排子程序=========
 RANDOMSORT  PROC NEAR
 	call mainsort 	;调用主函数
 
-	cursor 17, 30
+	cursor 18, 29
  	lea dx,inf_end 	;提示按任意键结束
  	mov ax,0900H
  	int 21H
@@ -413,8 +436,8 @@ DISPLAY PROC NEAR
 	SHOWSTR SHOW13
 	SHOWSTR SHOW14
 	SHOWSTR SHOW15
-	SHOWSTR SHOW16
-	SHOWSTR SHOW17
+;	SHOWSTR SHOW16
+;	SHOWSTR SHOW17
 	SHOWSTR SHOW18
 	SHOWSTR SHOW19
 	SHOWSTR SHOW20
@@ -512,9 +535,9 @@ MUSIC  	ENDP
 ;===========打印星星的子程序=========
 PRINTSTAR PROC NEAR
 LOOP1: 
-	MOV CX,5
+	MOV CX,7
 	MOV AX,10
-        MOV DX,5
+        MOV DX,2
 LOOP2: 	
 	CURSOR  AX,DX
         SHOWSTR   BUFSTAR1
@@ -522,9 +545,9 @@ LOOP2:
         CURSOR  AX,DX
         SHOWSTR   BUFSTAR2
         INC AX
-        ADD DX,5
+        ADD DX,3
         DEC CX
-        MOV AH,0BH
+ ;       MOV AH,0BH
 
         JNZ LOOP2
         JMP LOOP1
@@ -553,22 +576,6 @@ DELAY  ENDP
 PRINTSTAR ENDP
 
 SHOWTIME PROC NEAR
-TIMER1 MACRO REG,ADR
-       PUSH AX
-       PUSH BX
-       LEA SI,ADR
-       MOV AL,REG
-       MOV AH,00
-       MOV BL,10
-       DIV BL
-       ADD AL,30H
-       MOV [SI],AL
-       ADD AH,30H
-       INC SI
-       MOV [SI],AH
-       POP BX
-       POP AX
-       ENDM
 
        CURSOR 5,35
        SHOWSTR BUFTIME1
