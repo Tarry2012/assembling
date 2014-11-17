@@ -184,11 +184,40 @@ START:
 	SETCRT  
 	CLEAR
 	CALL    DISPLAY
+loopstart:
+	mov 	ah, 2ch
+	int 	21h
+	push 	cx
+	push 	dx
+loopmusic:
 	CALL    PLAYMUSIC	
-	
-;	CALL  	SHOWTIME
+	mov  	ah, 2ch
+	int 	21h
+	pop 	ax
+	pop 	bx
+	push 	bx
+	push  	ax
+	cmp 	bl, cl
+	jz 	equalmin
+	jnz 	noequalmin
+equalmin:
+	dec 	dh, ah
+	cmp 	dh, 30
+	jb 	loopmusic
+	jmp 	exenext
+noequalmin:
+	add 	dh, 60
+	dec 	dh, ah
+	cmp 	dh, 30
+	jb 	loopmusic
+exenext:
+	pop 	ax
+	pop 	bx
+;	call 	kbtest
+	CALL  	SHOWTIME
 ;	CALL 	PRINTSTAR
 ;	CALL 	RANDOMSORT
+	
         mov  ah, 4ch
 	int   21h
 
@@ -196,11 +225,10 @@ START:
 RANDOMSORT  PROC NEAR
 	call mainsort 	;调用主函数
 
-	cursor 18, 29
- 	lea dx,inf_end 	;提示按任意键结束
- 	mov ax,0900H
- 	int 21H
- 	mov ax,0700H
+ 	mov ah,07H
+	int 21h
+	cmp al, 01bH
+	jnz loopstart
  
 	int 21H
 	mov ax,4c00H
@@ -452,12 +480,6 @@ PLAYMUSIC PROC NEAR
 	
 	ADDRESS MUS_FREG1, MUS_TIME1
 	CALL 	MUSIC
-;	ADDRESS MUS_FREG2, MUS_TIME2
-;	CALL 	MUSIC
-;	ADDRESS MUS_FREG3, MUS_TIME3
-;	CALL 	MUSIC
-;	ADDRESS MUS_FREG4, MUS_TIME4
-;	CALL 	MUSIC
 	POP 	CX
 	RET
 PLAYMUSIC ENDP
@@ -526,7 +548,7 @@ FREG:
 	CALL 	GENSOUND
 	ADD 	SI, 2
 	ADD 	BP, 2
- 	CALL    KBTEST
+	call 	kbtest
 	JMP 	FREG
 END_MUS:
 	RET
@@ -534,56 +556,80 @@ MUSIC  	ENDP
 
 ;===========打印星星的子程序=========
 PRINTSTAR PROC NEAR
+
+exitstar macro
+	push ax
+	mov ah, 0bh
+	int 21h
+	cmp al, 00h
+	jnz exitt
+	pop ax
+	endm
+	and cx, 0
 LOOP1: 
-	MOV CX,7
-	MOV AX,10
-        MOV DX,2
+
+	MOV BX,7
+	MOV AL,10
+        MOV DL, 2
 LOOP2: 	
-	CURSOR  AX,DX
+	CURSOR  AL,DL
         SHOWSTR   BUFSTAR1
         CALL DELAY
-        CURSOR  AX,DX
+        CALL DELAY
+	exitstar
+        CALL DELAY
+        CALL DELAY
+	exitstar
+        CALL DELAY
+        CALL DELAY
+	exitstar
+        CALL DELAY
+        CURSOR  AL,DL
         SHOWSTR   BUFSTAR2
-        INC AX
-        ADD DX,3
-        DEC CX
- ;       MOV AH,0BH
-
+        INC AL
+        ADD DL,3
+	
+	INC CX
+	CMP CX, 0fH
+	JZ EXITT
+	dec bx
+	
         JNZ LOOP2
         JMP LOOP1
 
+exitt:
+	mov ah, 4ch
+	int 21h
 
 DELAY   PROC NEAR
 
         PUSH CX
-        PUSH AX
+	mov  cx, 0FFFFH
 
-	MOV  CX,0FFFFH   ; about 100ms
-
-DELAY_LOOP:
-        IN  AL, 61H
-        AND  AL, 10H
-        CMP  AL, AH
-        JE   DELAY_LOOP
-        MOV  AH,AL
-        LOOP DELAY_LOOP
-
-        POP AX
+L3: 	
+	LOOP L3
         POP CX
         RET
 DELAY  ENDP
+
 	RET
 PRINTSTAR ENDP
 
+;==============显示时间的子程序======
 SHOWTIME PROC NEAR
+exittime macro
+	mov ah, 0bh
+	int 21h
+	cmp al, 00h
+	jnz exita
+	endm
 
        CURSOR 5,35
        SHOWSTR BUFTIME1
 
+ ;      and  bx, 0
 LOOPR:
-	MOV AH,2CH
-        INT 21H
-
+	
         PUSH CX
         MOV CH,DL
         TIMER1 CH,MSECOND
@@ -597,10 +643,17 @@ LOOPR:
         SHOWSTR MINUTE
         SHOWSTR SECOND
         SHOWSTR MSECOND
-
-        CALL KBTEST
-        JMP LOOPR
 	
+;	inc bx
+;	cmp bx, 0FFFFH
+;	jz  exita
+;	exittime
+	jmp loopr
+      	
+exita:
+	mov ah, 4ch
+	int 21h
+
 	RET
 SHOWTIME ENDP
 
@@ -629,6 +682,7 @@ kbtest_2:
 ;	pop ax
 	ret
 kbtest endp
+
 ;==========退出程序===============
 EXIT: 	
 	SETCRT
