@@ -539,6 +539,7 @@ WAITF 	ENDP
 
 ;==========播放音乐子程序=============
 MUSIC 	PROC  	NEAR
+
 	XOR 	AX, AX
 FREG:	
 	MOV 	DI, [SI]
@@ -548,8 +549,19 @@ FREG:
 	CALL 	GENSOUND
 	ADD 	SI, 2
 	ADD 	BP, 2
-	call 	kbtest
+
+	mov 	ah, 0bh
+	int 	21h
+	cmp 	al, 00h
+	jnz 	exitmusic
+
 	JMP 	FREG
+
+exitmusic:
+       ; setcrt
+	;clear
+	mov ah, 4ch
+	int 21h
 END_MUS:
 	RET
 MUSIC  	ENDP
@@ -627,9 +639,11 @@ exittime macro
        CURSOR 5,35
        SHOWSTR BUFTIME1
 
- ;      and  bx, 0
+       and  bx, 0
 LOOPR:
-	
+	mov ah, 2ch
+	int 21h
+
         PUSH CX
         MOV CH,DL
         TIMER1 CH,MSECOND
@@ -644,10 +658,10 @@ LOOPR:
         SHOWSTR SECOND
         SHOWSTR MSECOND
 	
-;	inc bx
-;	cmp bx, 0FFFFH
-;	jz  exita
-;	exittime
+	inc bx
+	cmp bx, 0ffffH
+	jz  exita
+	exittime
 	jmp loopr
       	
 exita:
