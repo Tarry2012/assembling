@@ -33,47 +33,6 @@ MUS_FREG1 DW 3 dup (392,440),392				;为演奏的乐曲定义一个频率表
 MUS_TIME1 DW 6 DUP(50),100,4 DUP (50),100,100	;为演奏乐曲定义一个节拍时间表
 	  DW 2 DUP(6 DUP(50),100)
 
-;====================《月儿弯弯》的频率表和时间节拍表=====================
-MUS_FREG2 DW 392,3 dup (262),330,2 dup (262)
-          DW 2 dup (392,330),392
-          DW 392,3 dup (262),330,2 dup (262)
-          DW 2 dup (392,330),294
-          dw 392,392,440,440
-          dw 392,330,294,330,440
-          dw 392,392,3 dup (262),294,330,440
-          DW 392,33,294,262,-1
-MUS_TIME2 DW 2 DUP(6 dup(50),100,75,25,50,50,200)
-          DW 75,25,100,200
-          DW 4 dup(50),200
-          dw 75,25,6 dup(50)
-          dw 75,25,100,200
-
-;===================《小蜜蜂》的频率表和时间节拍表======================== 
-MUS_FREG3 DW 392,330,330,349,294,294
-          DW 262,294,330,349,3 dup(392)
-          DW 392,330,330,349,294,294
-          DW 262,330,392,392,330
-          DW 5 dup(294),330,349
-          dw 5 dup(330),349,392
-          dw 392,330,330,349,294,294
-          dw 262,330,392,392,262,-1
-MUS_TIME3 DW 2 dup(50,50,100)
-          DW 6 dup(50),100
-          DW 2 dup(50,50,100)
-          DW 4 dup(50),200
-          DW 2 dup(6 dup(50),100)
-          dw 2 dup(50,50,100)
-          DW 4 DUP(50),200
-
-;===================其他乐曲的频率表和时间节拍表
-MUS_FREG4  dw 330,294,262,294,3 dup (330)     ;频率表
-               dw 3 dup (294),330,392,392
-               dw 330,294,262,294,4 dup (330)
-               dw 294,294,330,294,262,-1
-MUS_TIME4  dw 6 dup (25),50                   ;节拍表
-               dw 2 dup (25,25,50)
-               dw 12 dup (25),100
-
 ;==================打印星星的数据=========
 BUFSTAR1 	DB "* $"
 BUFSTAR2 	DB " $"
@@ -184,38 +143,77 @@ START:
 	CLEAR
 	CALL    DISPLAY
 loopstart:
-	mov 	ah, 2ch
+	mov 	ah, 2ch 	;读取此时时间
 	int 	21h
-	push 	cx
 	push 	dx
 loopmusic:
 	CALL    PLAYMUSIC	 ;播放音乐
-	mov  	ah, 2ch
+	mov  	ah, 2ch 	 ;再次读取时间
 	int 	21h
-	pop 	ax
 	pop 	bx
 	push 	bx
-	push  	ax
-	cmp 	bl, cl
-	jz 	equalmin
-	jnz 	noequalmin
-equalmin:
-	dec 	dh, ah
-	cmp 	dh, 30
-	jb 	loopmusic
-	jmp 	exenext
-noequalmin:
+	sub 	dh, bh 		 ;将两次秒数相减
+	jb 	belowzero1 	 ;如果秒数小于零
+	jmp 	abovezero1 	 ;否则
+belowzero1: 			 ;如果小于零，将第二秒数差
+				 ;加60与28比较
 	add 	dh, 60
-	dec 	dh, ah
-	cmp 	dh, 30
+	cmp 	dh, 28
+	jb 	loopmusic        ;如果小与28，再次播放音乐
+ 
+	jmp 	exenext1 	 ;否则跳到下一个程序
+abovezero1:
+	cmp 	dh, 28
 	jb 	loopmusic
-exenext:
-	pop 	ax
+exenext1:
 	pop 	bx
+	and 	bx, 0h
+	mov 	ah, 2ch
+	int 	21h
+	push 	dx
+looptime:
 	CALL  	SHOWTIME 	;显示时间
-
+	mov 	ah, 2ch
+	int 	21h
+	pop 	bx
+	push 	bx
+	sub  	dh, bh
+	jb      belowzero2
+	jmp     abovezero2
+belowzero2:
+	add 	dh, 60
+	cmp 	dh, 28
+	jb 	looptime
+	jmp 	exenext2
+abovezero2:
+	cmp 	dh, 28
+	jb 	looptime
+exenext2:
+	pop  	bx
+	and 	bx, 0h
+	mov 	ah, 2ch
+	int 	21h
+	push 	dx
+loopstar:
 	CALL 	PRINTSTAR       ;打印星星
-  
+	mov 	ah, 2ch
+	int  	21h
+	pop 	bx
+	push 	bx
+	sub 	dh, bh
+	jb 	belowzero3
+	jmp 	abovezero3
+belowzero3:
+	add 	dh, 60
+	cmp 	dh, 28
+	jb 	loopstar
+	jmp     exenext3
+abovezero3:
+	cmp 	dh, 28
+	jb 	loopstar
+exenext3:
+	pop 	bx
+	and 	bx, 0h
 	CALL 	RANDOMSORT   	;随即数快排
 	
 	setcrt
@@ -235,7 +233,15 @@ RANDOMSORT  PROC NEAR
 	call delaybig ;延迟转到音乐子程序
 	call delaybig ;延迟转到音乐子程序
 	call delaybig ;延迟转到音乐子程序
-	jmp loopstart ;转到音乐子程序
+
+	mov 	cx, 5
+	lea  	bx, array
+cleararray:
+	mov 	ax, 0
+	mov 	[bx], ax
+	add 	bx, 2
+	loop    cleararray
+	jmp 	loopstart ;转到音乐子程序
 
 ;退出程序，退出前清屏
 exitrandom: 		
@@ -657,7 +663,7 @@ LOOP2:
         ADD DL,3
 	
 	INC CX
-	CMP CX, 8fH 		;当cx等于8fH时 		
+	CMP CX, 0fH 		;当cx等于0fH时 		
 	JZ end_star 		;退出打印星星子程序
 	dec bx
 
@@ -714,7 +720,7 @@ LOOPR:
         SHOWSTR MSECOND
 	
 	inc bx
-	cmp bx, 0ffffH 	;当bx为0ffffh时
+	cmp bx, 0ffH 	;当bx为0ffh时
 	je  end_time 	;跳出子程序
 	mov ah, 0bh
 	int 21h
