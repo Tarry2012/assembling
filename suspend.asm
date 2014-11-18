@@ -19,7 +19,7 @@ DATA 	SEGMENT
     SHOW16      DB    0AH, 0DH, "#                        #                                     #$";|
     SHOW17      DB    0AH, 0DH, "#                        #                                     #$";|
     SHOW18      DB    0AH, 0DH, "################################################################$";|
-    SHOW19      DB    0AH, 0DH, "#    INPUT ESC TO EXIT                  TQY & PJ & GY          #$";|
+    SHOW19      DB    0AH, 0DH, "#    INPUT KEY TO EXIT                  TQY & PJ & GY          #$";|
     SHOW20      DB    0AH, 0DH, "################################################################$";|
 
 ;---音乐乐谱数据---------------------------------------------------------------------------------------------
@@ -88,10 +88,10 @@ MSECOND 	DB 20H,20H,'$'
 ;================快排数据===========
 count equ 5
     inf0 db 'Please input data(0~255)''$'
-    buf db 250,0,250 dup (0) ;保存输入数据字符串的缓冲区
-    table db 100 dup (0) ;分析输入的字符串,分解为数字,保存在这个表中
-    buf2 db 250 dup (0) ;将数组转换成可以显示的字符串,每个数字用逗号分隔,保存在这里,方便显示
-    len db 0 ;保存数组长度
+    buf db 250,0,250 dup (0) 	;保存输入数据字符串的缓冲区
+    table db 100 dup (0) 	;分析输入的字符串,分解为数字,保存在这个表中
+    buf2 db 250 dup (0) 	;将数组转换成可以显示的字符串,每个数字用逗号分隔,保存在这里,方便显示
+    len db 0 			;保存数组长度
     inf1 db 'Befor quick sort:$'
     inf2 db 'After quick sort:$'
     array db 11 dup(0) 
@@ -189,7 +189,7 @@ loopstart:
 	push 	cx
 	push 	dx
 loopmusic:
-	CALL    PLAYMUSIC	
+	CALL    PLAYMUSIC	 ;播放音乐
 	mov  	ah, 2ch
 	int 	21h
 	pop 	ax
@@ -212,12 +212,14 @@ noequalmin:
 exenext:
 	pop 	ax
 	pop 	bx
-	CALL  	SHOWTIME
+	CALL  	SHOWTIME 	;显示时间
 
-	CALL 	PRINTSTAR
-
-	CALL 	RANDOMSORT
+	CALL 	PRINTSTAR       ;打印星星
+  
+	CALL 	RANDOMSORT   	;随即数快排
 	
+	setcrt
+	clear
         mov  ah, 4ch
 	int   21h
 
@@ -228,17 +230,20 @@ RANDOMSORT  PROC NEAR
 
 	mov ah,0bh
 	int 21H
-	cmp al, 00h
+	cmp al, 00h   ;如果键盘有键入，退出程序
 	jnz exitrandom
-	call delaybig
-	call delaybig
-	call delaybig
-	jmp loopstart
+	call delaybig ;延迟转到音乐子程序
+	call delaybig ;延迟转到音乐子程序
+	call delaybig ;延迟转到音乐子程序
+	jmp loopstart ;转到音乐子程序
 
-exitrandom:
+;退出程序，退出前清屏
+exitrandom: 		
+	setcrt
+	clear
+	call display
 	mov ah, 4ch
 	int 21h
-
 
 getarray proc near
     
@@ -313,8 +318,8 @@ delaybig endp
     
 mainsort proc near
 	
-	cursor 12, 28
-	lea dx,[inf1] ;提示语句
+	cursor 12, 28   ;设置光标
+	lea dx,[inf1] 	;提示语句
 	mov ah,09H
 	int 21H 
 	
@@ -338,8 +343,8 @@ mainsort proc near
 	dec di
 	
 	call QuickSort ;调用快速排序函数,直接整理数组里面的元素
-	cursor 13, 28
-	lea dx,[inf2] ;提示语句
+	cursor 13, 28  ;设置光标
+	lea dx,[inf2]  ;提示语句
 	mov ah,09H
 	int 21H
 	lea si,[array] ;调用函数,显示数组
@@ -368,12 +373,12 @@ Partition proc near
 	mov al,[si] ;保存第一个数字,作为比较大小的标准
 	dec si ;si后移,因为下面循环的第一步是si前移,所以要先后移一位,不然会以后第一个数
 	inc di ;di前移,原因如上
-	P_l1:
-	P_l2:
+P_l1:
+P_l2:
 	dec di ;di前移,如果[di]比标准数字大,则继续循环,这个循环结束后,di指向从右边开始第一个比标准数字小的数字(如果存在的话)
 	cmp [di],al
 	ja P_l2
-	P_l3:
+P_l3:
 	inc si ;si后移,如果[si]比标准数字小,则继续循环,这个循环结束后,di指向从右边开始第一个比标准数字大的数字(如果存在的话)
 	cmp [si],al
 	jb P_l3
@@ -383,7 +388,7 @@ Partition proc near
 	xchg [si],ah
 	mov [di],ah
 	jmp P_l1 ;如果si还是小于di,那么继续开始循环,知道整理结束
-	P_s1:
+P_s1:
 	mov dx,di ;现在di指向中间元素,赋值个dx,作为返回值
 	pop ax
 	pop di
@@ -452,7 +457,7 @@ DA_l1: ;因为每个数字最多为三位,所以下面直接进行处理,不写�
 	add ax,3030H
 	mov word ptr [di],ax
 	
-	add di,2             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	add di,2             ;
 	
 	mov byte ptr [di],',' ;后面加逗号
 	inc di ;di后移
@@ -513,8 +518,6 @@ DISPLAY PROC NEAR
 	SHOWSTR SHOW13
 	SHOWSTR SHOW14
 	SHOWSTR SHOW15
-;	SHOWSTR SHOW16
-;	SHOWSTR SHOW17
 	SHOWSTR SHOW18
 	SHOWSTR SHOW19
 	SHOWSTR SHOW20
@@ -524,11 +527,11 @@ DISPLAY	ENDP
 ;============循环播放音乐的子程序PLAYMUSIC
 PLAYMUSIC PROC NEAR
 	PUSH  	CX
-	CURSOR 5,5
-	SHOWSTR INFORMUSIC
+	CURSOR 5,5   		;设置光标
+	SHOWSTR INFORMUSIC  	;打印提示语句
 	
-	ADDRESS MUS_FREG1, MUS_TIME1
-	CALL 	MUSIC
+	ADDRESS MUS_FREG1, MUS_TIME1 ;将音乐
+	CALL 	MUSIC      ;调用播放音乐程序
 	POP 	CX
 	RET
 PLAYMUSIC ENDP
@@ -593,22 +596,23 @@ MUSIC 	PROC  	NEAR
 FREG:	
 	MOV 	DI, [SI]
 	CMP 	DI, -1
-	JE 	END_MUS
+	JE 	END_MUS   ;音乐播放完毕，跳出子程序
 	MOV 	BX, DS:[BP]
 	CALL 	GENSOUND
 	ADD 	SI, 2
 	ADD 	BP, 2
 
-	mov 	ah, 0bh
+	mov 	ah, 0bh  ;按任意键退出总程序
 	int 	21h
 	cmp 	al, 00h
-	jnz 	exitmusic
+	jnz 	exitmusic  
 
 	JMP 	FREG
 
+;在退出程序前，清屏
 exitmusic:
-       ; setcrt
-	;clear
+        setcrt
+	clear
 	mov ah, 4ch
 	int 21h
 END_MUS:
@@ -618,6 +622,7 @@ MUSIC  	ENDP
 ;===========打印星星的子程序=========
 PRINTSTAR PROC NEAR
 
+;按任意键退出总程序
 exitstar macro
 	push ax
 	mov ah, 0bh
@@ -626,24 +631,25 @@ exitstar macro
 	jnz exitt
 	pop ax
 	endm
-	and cx, 0
+
+	and cx, 0   	;用cx控制子程序一次执行时间
 LOOP1: 
 
 	MOV BX,7
 	MOV AL,10
         MOV DL, 2
 LOOP2: 	
-	CURSOR  AL,DL
-        SHOWSTR   BUFSTAR1
+	CURSOR  AL,DL    	;设置光标
+        SHOWSTR   BUFSTAR1 	;打印语句
+        CALL DELAYSTAR  	;延迟打印星星
+        CALL DELAYSTAR
+	exitstar 		;键入任意键，退出
         CALL DELAYSTAR
         CALL DELAYSTAR
-	exitstar
+	exitstar 		;键入任意键，退出
         CALL DELAYSTAR
         CALL DELAYSTAR
-	exitstar
-        CALL DELAYSTAR
-        CALL DELAYSTAR
-	exitstar
+	exitstar 		;键入任意键，退出
         CALL DELAYSTAR
         CURSOR  AL,DL
         SHOWSTR   BUFSTAR2
@@ -651,17 +657,21 @@ LOOP2:
         ADD DL,3
 	
 	INC CX
-	CMP CX, 0fH
-	JZ end_star
+	CMP CX, 8fH 		;当cx等于8fH时 		
+	JZ end_star 		;退出打印星星子程序
 	dec bx
 
         JNZ LOOP2
         JMP LOOP1
 
+;退出前，清屏
 exitt:
+	setcrt
+	clear
 	mov ah, 4ch
 	int 21h
 
+;延迟子程序
 DELAYSTAR  PROC NEAR
 
         PUSH CX
@@ -681,10 +691,10 @@ PRINTSTAR ENDP
 ;==============显示时间的子程序======
 SHOWTIME PROC NEAR
 
-       CURSOR 5,35
-       SHOWSTR BUFTIME1
+       CURSOR 5,35 	;设置光标
+       SHOWSTR BUFTIME1 ;打印语句
 
-       and  bx, 0
+        and  bx, 0 	;用bx控制子程序一次运行时间
 LOOPR:
 	mov ah, 2ch
 	int 21h
@@ -697,22 +707,25 @@ LOOPR:
         POP CX
         TIMER1 CL,MINUTE
         TIMER1 CH,HOUR
-        CURSOR 7,35
+        CURSOR 7,35 	;设置光标
         SHOWSTR HOUR
         SHOWSTR MINUTE
         SHOWSTR SECOND
         SHOWSTR MSECOND
 	
 	inc bx
-	cmp bx, 0ffffH
-	je  end_time
+	cmp bx, 0ffffH 	;当bx为0ffffh时
+	je  end_time 	;跳出子程序
 	mov ah, 0bh
 	int 21h
-	cmp al, 00h
-	jnz exita
-	jmp loopr
+	cmp al, 00h 	
+	jnz exita 	;有键入时，退出总程序
+	jmp loopr 	;否则继续显示当前时间
       	
+;退出前，清屏	
 exita:
+	setcrt
+	clear
 	mov ah, 4ch
 	int 21h
 
@@ -720,39 +733,6 @@ end_time:
 	
 	RET
 SHOWTIME ENDP
-
-;============检测键盘是否有输入且输入是否为esc
-kbtest proc near
-;	push ax
- 	mov ah,1
- 	int 16h
- 	jnz kbtest_1
- 	mov ax,0ffh
- 	stc
- 	ret ;没有内容自动返回
-kbtest_1:
- 	mov ah,7
- 	int 21h
- 	mov ah,0
- 	cmp al,0
- 	jnz kbtest_2  ;输入的是ASCII码(AL)
- 	mov ah,7
- 	int 21h       ;取扩展ASCII码(非字符码的功能键)
- 	mov ah,1
- 	clc
-kbtest_2:
-	cmp al, 1BH
-	jz  exit
-;	pop ax
-	ret
-kbtest endp
-
-;==========退出程序===============
-EXIT: 	
-	SETCRT
-        CLEAR
-        MOV AH,4CH
-        INT 21H
 
 CODE ENDS
 	END START
