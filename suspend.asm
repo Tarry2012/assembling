@@ -84,24 +84,23 @@ HOUR    	DB 20H,20H,':','$'
 MINUTE  	DB 20H,20H,':','$'
 SECOND  	DB 20H,20H,':','$'
 MSECOND 	DB 20H,20H,'$'
-INFOR   	DB "Press any key to exit.....$"
 
 ;================快排数据===========
-inf0 		db 'Please input  data(0~255):', 0ah, 0dh, '$'
-buf 		db 250,250 dup (0) 				;保存输入数据字符串的缓冲区
-table 		db 100 dup (0) 					;分析输入的字符串,分解为数字,保存在这个表中
-buf2 		db 250 dup (0) 					;将数组转换成可以显示的字符串,每个数字用逗号分隔,保存在这里
-								;方便显示
-len 		db 0 						;保存数组长度
-inf1 		db 'Befor quick sort:$'
-inf2 		db 'After quick sort:$'
-inf4 		db 13,10,'Find another num(Y/N)?$'
-inf_end 	db 'Press key to play music...$'
+count equ 5
+    inf0 db 'Please input data(0~255)''$'
+    buf db 250,0,250 dup (0) ;保存输入数据字符串的缓冲区
+    table db 100 dup (0) ;分析输入的字符串,分解为数字,保存在这个表中
+    buf2 db 250 dup (0) ;将数组转换成可以显示的字符串,每个数字用逗号分隔,保存在这里,方便显示
+    len db 0 ;保存数组长度
+    inf1 db 'Befor quick sort:$'
+    inf2 db 'After quick sort:$'
+    array db 11 dup(0) 
 
 ;===============获得中断时间的数据=========
 firstsec	db 20h, 20h, '$'
 secondsec   	db 20h, 20h, '$'
 testsec 	db 20h, 20h, '$'
+
 DATA ENDS   
 
 STACK 	SEGMENT  stack
@@ -213,61 +212,149 @@ noequalmin:
 exenext:
 	pop 	ax
 	pop 	bx
-;	call 	kbtest
 	CALL  	SHOWTIME
-;	CALL 	PRINTSTAR
-;	CALL 	RANDOMSORT
+
+	CALL 	PRINTSTAR
+
+	CALL 	RANDOMSORT
 	
         mov  ah, 4ch
 	int   21h
 
 ;==========随即数快排子程序=========
 RANDOMSORT  PROC NEAR
-	call mainsort 	;调用主函数
+	
+	call mainsort ;调用主函数
 
- 	mov ah,07H
+	mov ah,0bh
+	int 21H
+	cmp al, 00h
+	jnz exitrandom
+	call delaybig
+	call delaybig
+	call delaybig
+	jmp loopstart
+
+exitrandom:
+	mov ah, 4ch
 	int 21h
-	cmp al, 01bH
-	jnz loopstart
- 
-	int 21H
-	mov ax,4c00H
-	int 21H
 
+
+getarray proc near
+    
+	lea bx, array
+		
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1 
+	call delaybig
+		                    
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx,1 
+	call delaybig
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1
+	call delaybig
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1 
+	call delaybig
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx,1
+	call delaybig
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1
+	call delaybig
+	
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1
+	call delaybig
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1
+	call delaybig
+	mov   ah,2ch
+	int   21h        ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1
+	call delaybig
+	mov   ah,2ch
+	int   21h         ;读系统时间
+	mov   [bx],dl    ;取秒值
+	add   bx, 1
+	
+	ret 
+getarray endp
+
+delaybig proc near
+     
+	call delay
+	call delay
+	call delay
+	call delay
+	call delay
+	call delay
+	call delay
+	ret 
+delaybig endp
+    
 mainsort proc near
-
-	CURSOR  10, 27
-	lea dx,inf0 		;提示输入字符串,并接受输入,存在buf
+	
+	cursor 12, 28
+	lea dx,[inf1] ;提示语句
 	mov ah,09H
-	int 21H
-	cursor 11,27 
-	lea dx,buf
-	mov ah,0aH
-	int 21H
-
-	call SaveToArray 	;调用函数,处理输入的字符串,整理为数字数组
-	CURSOR  13, 27
-	lea dx,[inf1] 		;提示语句
-	mov ah,09H
-	int 21H
-	lea si,[table] 		;传递两个参数,调用函数在屏幕上显示数组
+	int 21H 
+	
+	mov ax, data
+	mov ds, ax
+	
+	call getarray
+	
+	mov cx, count
+	mov len, count
+	lea si,[array] ;传递两个参数,调用函数在屏幕上显示数组
 	lea di,[buf2]
+	
 	call DisplayArray
-	lea di,[table] 		;下面5句使di指向数组的最后一个数字
+	
+	lea di,[array] ;下面5句使di指向数组的最后一个数字 
+	
 	mov al,[len]
 	mov ah,0
 	add di,ax
 	dec di
-	call QuickSort 		;调用快速排序函数,直接整理数组里面的元素
-	CURSOR  14, 27
-	lea dx,[inf2] 		;提示语句
+	
+	call QuickSort ;调用快速排序函数,直接整理数组里面的元素
+	cursor 13, 28
+	lea dx,[inf2] ;提示语句
 	mov ah,09H
 	int 21H
-	lea si,[table] 		;调用函数,显示数组
+	lea si,[array] ;调用函数,显示数组
 	lea di,[buf2]
 	call DisplayArray
 	ret
 mainsort endp
+
+delay proc
+ 	MOV CX,0ffffH
+
+L3: 
+	LOOP L3
+    	ret
+delay endp  
 
 ;函数功能:对于si和di范围内的数字进行整理,使左边的所有数都不大于右边的任意一个,返回中间位置的指针
 ;输入参数:si 指向待整理范围的第一个数字,而且也以这个数字作为分界,比这个数字大的放右边,比他小的放左边
@@ -278,28 +365,26 @@ Partition proc near
 	push si
 	push di
 	push ax
-	mov al,[si] 	;保存第一个数字,作为比较大小的标准
-	dec si 		;si后移,因为下面循环的第一步是si前移,所以要先后移一位,不然会以后第一个数
-	inc di 		;di前移,原因如上
-P_l1:
-P_l2:
-	dec di 		;di前移,如果[di]比标准数字大,则继续循环,这个循环结束后,
-			;di指向从右边开始第一个比标准数字小的数字(如果存在的话)
+	mov al,[si] ;保存第一个数字,作为比较大小的标准
+	dec si ;si后移,因为下面循环的第一步是si前移,所以要先后移一位,不然会以后第一个数
+	inc di ;di前移,原因如上
+	P_l1:
+	P_l2:
+	dec di ;di前移,如果[di]比标准数字大,则继续循环,这个循环结束后,di指向从右边开始第一个比标准数字小的数字(如果存在的话)
 	cmp [di],al
 	ja P_l2
-P_l3:
-	inc si 		;si后移,如果[si]比标准数字小,则继续循环,这个循环结束后,
-			;di指向从右边开始第一个比标准数字大的数字(如果存在的话)
+	P_l3:
+	inc si ;si后移,如果[si]比标准数字小,则继续循环,这个循环结束后,di指向从右边开始第一个比标准数字大的数字(如果存在的话)
 	cmp [si],al
 	jb P_l3
-	cmp si,di 	;如果此时si>=di,那么跳出循环,整理结束
+	cmp si,di ;如果此时si>=di,那么跳出循环,整理结束
 	jnb P_s1
-	mov ah,[di] 	;这三句是交换[si]和[di]
+	mov ah,[di] ;这三句是交换[si]和[di]
 	xchg [si],ah
 	mov [di],ah
-	jmp P_l1 	;如果si还是小于di,那么继续开始循环,知道整理结束
-P_s1:
-	mov dx,di 	;现在di指向中间元素,赋值个dx,作为返回值
+	jmp P_l1 ;如果si还是小于di,那么继续开始循环,知道整理结束
+	P_s1:
+	mov dx,di ;现在di指向中间元素,赋值个dx,作为返回值
 	pop ax
 	pop di
 	pop si
@@ -313,24 +398,24 @@ Partition endp
 ;输出参数:无
 QuickSort proc near
 
-	push si 	;寄存器入栈,保护现场
+	push si ;寄存器入栈,保护现场
 	push di
 	push dx
-	cmp si,di 	;如果si>=di,则直接返回
+	cmp si,di ;如果si>=di,则直接返回
 	jge return
-	call Partition 	;调用函数,整理数组,返回值dx,在dx左边的数字都不大于右边的数字
-	push di 	;保存di
-	mov di,dx 	;对于si和bx范围内的数组,递归调用本函数
+	call Partition ;调用函数,整理数组,返回值dx,在dx左边的数字都不大于右边的数字
+	push di ;保存di
+	mov di,dx ;对于si和bx范围内的数组,递归调用本函数
 	call QuickSort
-	pop di 		;取出di
-	mov si,dx 	;对dx+1和di范围内的数组,递归调用本函数
+	pop di ;取出di
+	mov si,dx ;对dx+1和di范围内的数组,递归调用本函数
 	inc si
 	call QuickSort
 return:
-	pop dx 		;寄存器出栈,恢复现场
+	pop dx ;寄存器出栈,恢复现场
 	pop di
 	pop si
-	ret
+ret
 
 QuickSort endp
 
@@ -340,110 +425,74 @@ QuickSort endp
 ;输出参数:无(直接在屏幕上显示字符串)
 DisplayArray proc near
 
-	push ax 	;寄存器入栈
+	push ax ;寄存器入栈
 	push bx
 	push cx
 	push dx
 	push di
 	push si
 	
-	mov cl,[len] 	;设置循环次数等于数组元素个数
+	mov cl,[len] ;设置循环次数等于数组元素个数
 	mov ch,0
-	push di 	;di指向的是存放转换后字符串的地方,这个地方最后赋值给dx,可以显示
-DA_l1: 			;因为每个数字最多为三位,所以下面直接进行处理,不写通用的转换程序
-	mov al,[si] 	;当前处理的数字放入ax
+	push di ;di指向的是存放转换后字符串的地方,这个地方最后赋值给dx,可以显示
+DA_l1: ;因为每个数字最多为三位,所以下面直接进行处理,不写通用的转换程序
+	mov al,[si] ;当前处理的数字放入ax
 	mov ah,0
-	mov bl,100 	;16位除8位的除法
+	mov bl,100 ;16位除8位的除法
 	div bl
-	cmp al,0 	;如果商为0,跳转到处理余数的部分
+	cmp al,0 ;如果商为0,跳转到处理余数的部分
 	jz DA_s1
-	add al,'0' 	;商不为0,则加上30H,放入di指向的位置,di后移
+	add al,'0' ;商不为0,则加上30H,放入di指向的位置,di后移
 	mov [di],al 
 	inc di
-	mov al,ah 	;把余数除10,然后ax加上3030H,在用16位长度放入[di]中
+	mov al,ah ;把余数除10,然后ax加上3030H,在用16位长度放入[di]中
 	mov ah,0
 	mov bl,10
 	div bl
 	add ax,3030H
 	mov word ptr [di],ax
-	add di,2
+	
+	add di,2             ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	
 	mov byte ptr [di],',' ;后面加逗号
-	inc di 		;di后移
-	inc si 		;已经一个数字处理结束,si后移
-	jmp DA_s3 	;跳到loop的地方
+	inc di ;di后移
+	inc si ;已经一个数字处理结束,si后移
+	jmp DA_s3 ;跳到loop的地方
 DA_s1:
-	mov al,ah 	;数字不是三位数,把余数放入al,再除10
+	mov al,ah ;数字不是三位数,把余数放入al,再除10
 	mov ah,0
 	mov bl,10
 	div bl
-	cmp al,0 	;比较商是否为0,如果为0,说明是一位数,跳转到下面
+	cmp al,0 ;比较商是否为0,如果为0,说明是一位数,跳转到下面
 	jz DA_s2
-	add al,'0' 	;如果商不为0,则是两位数,商加30H,放入[di],di后移
+	add al,'0' ;如果商不为0,则是两位数,商加30H,放入[di],di后移
 	mov [di],al
 	inc di
 DA_s2:
-	add ah,'0' 	;把余数加上30H,放入[di],di后移
+	add ah,'0' ;把余数加上30H,放入[di],di后移
 	mov [di],ah
 	inc di
 	mov byte ptr [di],',' ;放入逗号
 	inc di
-	inc si 		;一个数字处理完成,si后移
+	inc si ;一个数字处理完成,si后移
 DA_s3:
-	loop DA_l1  	;继续处理下一个数字
-	dec di  	;现在字符串最后一位是逗号,把这个逗号换成'$'就好了
+	loop DA_l1 ;继续处理下一个数字
+	dec di ;现在字符串最后一位是逗号,把这个逗号换成'$'就好了
 	mov byte ptr [di],'$'
-	pop dx 		;把指向字符串第一个字符的位置出栈,赋值给bx
-	mov ah,09H 	;调用中断输出
+	pop dx ;把指向字符串第一个字符的位置出栈,赋值给bx
+	mov ah,09H ;调用中断输出
 	int 21H
-	pop si 		;寄存器出栈
+	pop si ;寄存器出栈
 	pop di
 	pop dx
 	pop cx
 	pop bx
 	pop ax
-	ret
-	
+ret
+
 DisplayArray endp
 
-;函数功能:把输入的字符串整理为数组
-;输入参数:无
-;输出参数:cx 整理出来的数组长度,数组存放在table里面
-SaveToArray proc near
-
-	mov cl,[buf+1] 		;输入字符串的长度
-	mov ch,0
-	lea si,[buf+2] 		;指向输入字符串的起始位置
-	lea di,[table] 		;指向存放整理后数字的位置
-	mov bh,0 		;bh存放的是数组长度
-SaveToArray_l1:
-	cmp byte ptr [si],'0' 	;如果这个字符不在0~9范围内,说明上一个数字输入结束
-	jb EndOfANum
-	cmp byte ptr [si],'9'
-	ja EndOfANum
-	mov al,[di] 		;如果这个字符是数字字符,那么把原来的值乘10,加上这个数字,减去30H
-	mov bl,10
-	mul bl
-	mov bl,[si]
-	sub bl,'0'
-	add al,bl
-	mov [di],al 		;保存回去
-	jmp short continue 	;继续下一次循环
-EndOfANum: 			;上一个数字输入完毕
-	cmp byte ptr [di],0 	;如果现在[di]的值为0,那不进行处理,因为已经规定,数字不为0
-	jz continue
-	inc di 			;如果[di]不为0,则di后移一位
-	inc bh 			;数组长度加1
-continue:
-	inc si 			;si后移一位
-	loop SaveToArray_l1 	;循环
-	inc bh 			;最后找到的一个数字,还没有计算进数组长度,所以这里加了1
-	mov [len],bh 		;数组长度保存到[len]
-	mov cl,bh 		;数组长度保存到cx
-	mov ch,0
 	ret
-	
-SaveToArray endp
-	RET
 RANDOMSORT ENDP
 
 ;===========显示主屏幕的子程序DISPLAY=====================
@@ -586,16 +635,16 @@ LOOP1:
 LOOP2: 	
 	CURSOR  AL,DL
         SHOWSTR   BUFSTAR1
-        CALL DELAY
-        CALL DELAY
+        CALL DELAYSTAR
+        CALL DELAYSTAR
 	exitstar
-        CALL DELAY
-        CALL DELAY
+        CALL DELAYSTAR
+        CALL DELAYSTAR
 	exitstar
-        CALL DELAY
-        CALL DELAY
+        CALL DELAYSTAR
+        CALL DELAYSTAR
 	exitstar
-        CALL DELAY
+        CALL DELAYSTAR
         CURSOR  AL,DL
         SHOWSTR   BUFSTAR2
         INC AL
@@ -603,9 +652,9 @@ LOOP2:
 	
 	INC CX
 	CMP CX, 0fH
-	JZ EXITT
+	JZ end_star
 	dec bx
-	
+
         JNZ LOOP2
         JMP LOOP1
 
@@ -613,28 +662,24 @@ exitt:
 	mov ah, 4ch
 	int 21h
 
-DELAY   PROC NEAR
+DELAYSTAR  PROC NEAR
 
         PUSH CX
 	mov  cx, 0FFFFH
 
-L3: 	
-	LOOP L3
+L3STAR: 	
+	LOOP L3STAR
         POP CX
         RET
-DELAY  ENDP
+DELAYSTAR  ENDP
 
+end_star:
+	
 	RET
 PRINTSTAR ENDP
 
 ;==============显示时间的子程序======
 SHOWTIME PROC NEAR
-exittime macro
-	mov ah, 0bh
-	int 21h
-	cmp al, 00h
-	jnz exita
-	endm
 
        CURSOR 5,35
        SHOWSTR BUFTIME1
@@ -660,14 +705,19 @@ LOOPR:
 	
 	inc bx
 	cmp bx, 0ffffH
-	jz  exita
-	exittime
+	je  end_time
+	mov ah, 0bh
+	int 21h
+	cmp al, 00h
+	jnz exita
 	jmp loopr
       	
 exita:
 	mov ah, 4ch
 	int 21h
 
+end_time:
+	
 	RET
 SHOWTIME ENDP
 
